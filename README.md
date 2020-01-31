@@ -23,4 +23,7 @@ Check [latest release](https://github.com/whuppo/emote-resize/releases).
 
 ## Building
 `pip install pyinstaller`
+
 `pyinstaller resize.spec`
+
+Doing this in a fresh venv might have the module finder not include more than required.
