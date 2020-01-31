@@ -1,5 +1,6 @@
 # emote-resize
 Python script with a GUI that focuses on resizing Twitch.tv emotes.
+
 ![Screenshot](https://imgur.com/k2OY1XC.png)
 
 ## Features
