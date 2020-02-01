@@ -82,6 +82,17 @@ def drop_enter( event ):
     event.widget.focus_force()
     return event.action
 
+def suffix( location ):
+    suffix = 0
+    ext = os.path.splitext( location )
+    while os.path.exists( location ):
+        suffix += 1
+        if suffix == 1:
+            location = ext[0] + " (" + str( suffix ) + ")" + ext[1]
+        else:
+            location = ext[0][:-3 - len( str( suffix ) ) ] + " (" + str( suffix ) + ")" + ext[1]
+    return location
+
 def drop( event ):
     if event.data:
         if event.widget == listbox:
@@ -96,8 +107,10 @@ def drop( event ):
                     
                     im = Image.open( f )
                     width, height = im.size
-                    im.copy().resize( ( int( width/2 ), int( height/2 ) ), img_filters[filters.index( filtersvar.get() )] ).save( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/2 ) ) + ".png" )
-                    im.copy().resize( ( int( width/4 ), int( height/4 ) ), img_filters[filters.index( filtersvar.get() )] ).save( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/4 ) ) + ".png" )
+                    location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/2 ) ) + ".png" )
+                    im.copy().resize( ( int( width/2 ), int( height/2 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
+                    location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/4 ) ) + ".png" )
+                    im.copy().resize( ( int( width/4 ), int( height/4 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
                     
                     file.mode = 1
                     listbox.delete( END )
