@@ -28,7 +28,7 @@ jobs:
         pip install pyinstaller pillow
     - name: Build with pyinstaller
       run: |
-        pyinstaller --windowed --onefile resize.spec
+        pyinstaller --onefile --windowed resize.spec
     - name: Upload build (ubuntu-latest)
       uses: actions/upload-artifact@v1
       with:
