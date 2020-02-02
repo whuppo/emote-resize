@@ -29,3 +29,8 @@ jobs:
     - name: Build with pyinstaller
       run: |
         pyinstaller -w resize.spec
+    - name: Upload build
+      uses: actions/upload-artifact@v1
+      with:
+        name: resize
+        path: dist/resize.*
