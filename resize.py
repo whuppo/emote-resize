@@ -14,11 +14,13 @@ class ListObject:
         self.location = os.path.dirname( fullpath )
         self.filt = filt
         self.mode = mode
+        self.output = []
 
     def __str__( self ):
         modes = [
             "processing",
             "completed",
+            "missing?",
             "INVALID"
         ]
         return self.name + " (" + self.filt + ")" + " \u2013 " + modes[ self.mode ]
@@ -93,6 +95,11 @@ def suffix( location ):
             location = ext[0][:-3 - len( str( suffix ) ) ] + " (" + str( suffix ) + ")" + ext[1]
     return location
 
+queue = [
+    ( "scale", 50 ),
+    ( "scale", 25 )
+]
+
 def drop( event ):
     if event.data:
         if event.widget == listbox:
@@ -102,31 +109,47 @@ def drop( event ):
             title.set( "Processing..." )
             for f in files:
                 file = ListObject( os.path.basename( f ), os.path.realpath( f ), filtersvar.get(), 0 )
-                if os.path.exists( f ) and os.path.isfile( f ) and os.path.splitext( f )[1] == ".png":
-                    listbox.insert( END, file )
-                    
+                ext = os.path.splitext( file.name )
+                listbox.insert( END, file )
+                try:
                     im = Image.open( f )
+                except FileNotFoundError:
+                    file.mode = 2
+                    listbox.delete( END )
+                    listbox.insert( END, file )
+                except ( Image.UnidentifiedImageError, ValueError ):
+                    file.mode = 3
+                    listbox.delete( END )
+                    listbox.insert( END, file )
+                else:
                     width, height = im.size
-                    location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/2 ) ) + ".png" )
-                    im.copy().resize( ( int( width/2 ), int( height/2 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
-                    location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/4 ) ) + ".png" )
-                    im.copy().resize( ( int( width/4 ), int( height/4 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
+                    # location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/2 ) ) + ".png" )
+                    # im.copy().resize( ( int( width/2 ), int( height/2 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
+                    # location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/4 ) ) + ".png" )
+                    # im.copy().resize( ( int( width/4 ), int( height/4 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
+                    for action in queue:
+                        if action[0] == "scale":
+                            scale = action[1] / 100
+                            location = suffix( file.location + "\\" + ext[0] + str( int( height * scale ) ) + ext[1] )
+                            file.output.append( location )
+                            im.copy().resize( ( int( width * scale ), int( height * scale ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
                     
                     file.mode = 1
                     listbox.delete( END )
                     listbox.insert( END, file )
                     listbox.dirs.append( file.fullpath )
-                else:
-                    file.mode = 2
-                    listbox.insert( END, file )
-                if zipbox.get():
-                    for i in range( 1, 4 ):
-                        if i == 1:
-                            path = file.location + "\\" + os.path.splitext( file.name )[0] + ".png"
-                        else:
-                            if i == 3: i = 4
-                            path = file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/i ) ) + ".png"
+
+                    if zipbox.get():
+                        # for i in range( 1, 4 ):
+                        #     if i == 1:
+                        #         path = file.location + "\\" + os.path.splitext( file.name )[0] + ".png"
+                        #     else:
+                        #         if i == 3: i = 4
+                        #         path = file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/i ) ) + ".png"
+                        path = file.location + "\\" + file.name
                         zipf.write( path, os.path.basename( path ), zipfile.ZIP_DEFLATED )
+                        for path in file.output:
+                            zipf.write( path, os.path.basename( path ), zipfile.ZIP_DEFLATED )
             title.set( "Drag and drop files here:" )
             if zipbox.get():
                 listbox.insert( END, os.path.splitext( os.path.basename( files[0] ) )[0] + '-batch.zip' )
