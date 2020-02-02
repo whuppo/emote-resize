@@ -1,0 +1,31 @@
+name: pyinstaller-build
+on:
+  push:
+    branches: 
+      - master
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest, macOS-latest, windows-latest]
+      fail-fast: false
+    
+    runs-on: ${{ matrix.runs-on }}
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller pillow
+    - name: Build with pyinstaller
+      run: |
+        pyinstaller -w resize.spec
