@@ -28,9 +28,22 @@ jobs:
         pip install pyinstaller pillow
     - name: Build with pyinstaller
       run: |
-        pyinstaller -w resize.spec
-    - name: Upload build
+        pyinstaller --windowed --onefile resize.spec
+    - name: Upload build (ubuntu-latest)
       uses: actions/upload-artifact@v1
       with:
-        name: resize
-        path: dist/resize.*
+        name: resize-linux
+        path: dist/resize
+      if: matrix.runs-on == 'ubuntu-latest'
+    - name: Upload build (macOS-latest)
+      uses: actions/upload-artifact@v1
+      with:
+        name: resize-macos
+        path: dist/resize.app
+      if: matrix.runs-on == 'macOS-latest'
+    - name: Upload build (windows-latest)
+      uses: actions/upload-artifact@v1
+      with:
+        name: resize-windows
+        path: dist/resize.exe
+      if: matrix.runs-on == 'windows-latest'
