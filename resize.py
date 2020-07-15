@@ -1,185 +1,47 @@
-import os, subprocess
-from tkinter import *
-from tkinter import messagebox
-from TkinterDnD2 import *
+import sys
 from PIL import Image
-import zipfile
+from PySide2 import QtCore, QtWidgets, QtGui
 
-current_version = 1.2
+class MainWindow( QtWidgets.QWidget ):
+    def __init__( self ):
+        QtWidgets.QWidget.__init__( self )
+        self.setAcceptDrops( True )
 
-class ListObject:
-    def __init__( self, name, fullpath, filt, mode ):
-        self.name = name
-        self.fullpath = fullpath
-        self.location = os.path.dirname( fullpath )
-        self.filt = filt
-        self.mode = mode
-        self.output = []
+        self.labelQueue = QtWidgets.QLabel( "Queue" )
+        self.labelQueue.setAlignment( QtCore.Qt.AlignCenter )
+        self.labelActions = QtWidgets.QLabel( "Actions" )
+        self.labelActions.setAlignment( QtCore.Qt.AlignCenter )
 
-    def __str__( self ):
-        modes = [
-            "processing",
-            "completed",
-            "missing?",
-            "INVALID"
-        ]
-        return self.name + " (" + self.filt + ")" + " \u2013 " + modes[ self.mode ]
+        self.queue = QtCore.QStringListModel( [ "hello", "world" ] )
+        self.listboxQueue = QtWidgets.QListView()
+        self.listboxQueue.setFixedHeight( 200 )
+        self.listboxQueue.setModel( self.queue )
 
-root = TkinterDnD.Tk()
-root.withdraw()
-root.title( "Resizer " + str( current_version ) )
-root.grid_rowconfigure( 1, weight=1, minsize=250 )
-root.grid_columnconfigure( 0, weight=1, minsize=300 )
-root.resizable( False, False )
+        self.actions = QtCore.QStringListModel( [ "hello", "world" ] )
+        self.listboxActions = QtWidgets.QListView()
+        self.listboxActions.setModel( self.actions )
 
-title = StringVar()
-Label( root, textvariable=title ).grid(
-    row=0, column=0, padx=10, pady=5
-)
-title.set( "Drag and drop files here:" )
+        self.layout = QtWidgets.QGridLayout()
+        self.layout.addWidget( self.labelQueue, 0, 0 )
+        self.layout.addWidget( self.listboxQueue, 1, 0 )
+        self.layout.addWidget( self.labelActions, 2, 0 )
+        self.layout.addWidget( self.listboxActions, 3, 0 )
+        self.setLayout( self.layout )
 
-listbox = Listbox( root, name='dnd_resize',
-    selectmode='single', width=1, height=1 )
-listbox.config( activestyle="none" )
-listbox.grid(
-    row=1, column=0, padx=5, pady=5, sticky='NEWS'
-)
+    def dragEnterEvent( self, e ):
+        if e.mimeData().hasUrls():
+            e.acceptProposedAction()
 
-listbox.dirs = []
+    def dropEvent( self, e ):
+        for url in e.mimeData().urls():
+            file_name = url.toLocalFile()
+            print( "Dropped file: " + file_name )
+            self.queue.setStringList( self.queue.stringList() + [ file_name ] )
 
-zipbox = IntVar()
-Checkbutton( root, text="Package as ZIP", variable=zipbox).grid(
-    row=2, column=0, padx=8, pady=0, sticky=W
-)
-
-filters = (
-    "Nearest Neighbor",
-    "Box",
-    "Bilinear",
-    "Hamming",
-    "Bicubic",
-    "Lanczos"
-)
-img_filters = (
-    Image.NEAREST,
-    Image.BOX,
-    Image.BILINEAR,
-    Image.HAMMING,
-    Image.BICUBIC,
-    Image.LANCZOS
-)
-filtersvar = StringVar()
-filtersvar.set( filters[3] )
-
-filterlabel = StringVar()
-Label( root, textvariable=filterlabel ).grid(
-    row=3, column=0, padx=8, pady=0, sticky=W
-)
-filterlabel.set( "Filter" )
-OptionMenu( root, filtersvar, *filters ).grid(
-    row=3, column=0, padx=40, pady=0, sticky=W
-)
-
-def drop_enter( event ):
-    event.widget.focus_force()
-    return event.action
-
-def suffix( location ):
-    suffix = 0
-    ext = os.path.splitext( location )
-    while os.path.exists( location ):
-        suffix += 1
-        if suffix == 1:
-            location = ext[0] + " (" + str( suffix ) + ")" + ext[1]
-        else:
-            location = ext[0][:-3 - len( str( suffix ) ) ] + " (" + str( suffix ) + ")" + ext[1]
-    return location
-
-queue = [
-    ( "scale", 50 ),
-    ( "scale", 25 )
-]
-
-def drop( event ):
-    if event.data:
-        if event.widget == listbox:
-            files = listbox.tk.splitlist( event.data )
-            if zipbox.get():
-                zipf = zipfile.ZipFile( os.path.dirname( files[0] ) + '\\' + os.path.splitext( os.path.basename( files[0] ) )[0] + '-batch.zip', 'w' )
-            title.set( "Processing..." )
-            for f in files:
-                file = ListObject( os.path.basename( f ), os.path.realpath( f ), filtersvar.get(), 0 )
-                ext = os.path.splitext( file.name )
-                listbox.insert( END, file )
-                try:
-                    im = Image.open( f )
-                except FileNotFoundError:
-                    file.mode = 2
-                    listbox.delete( END )
-                    listbox.insert( END, file )
-                except ( Image.UnidentifiedImageError, ValueError ):
-                    file.mode = 3
-                    listbox.delete( END )
-                    listbox.insert( END, file )
-                else:
-                    width, height = im.size
-                    # location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/2 ) ) + ".png" )
-                    # im.copy().resize( ( int( width/2 ), int( height/2 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
-                    # location = suffix( file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/4 ) ) + ".png" )
-                    # im.copy().resize( ( int( width/4 ), int( height/4 ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
-                    for action in queue:
-                        if action[0] == "scale":
-                            scale = action[1] / 100
-                            location = suffix( file.location + "\\" + ext[0] + str( int( height * scale ) ) + ext[1] )
-                            file.output.append( location )
-                            im.copy().resize( ( int( width * scale ), int( height * scale ) ), img_filters[filters.index( filtersvar.get() )] ).save( location )
-                    
-                    file.mode = 1
-                    listbox.delete( END )
-                    listbox.insert( END, file )
-                    listbox.dirs.append( file.fullpath )
-
-                    if zipbox.get():
-                        # for i in range( 1, 4 ):
-                        #     if i == 1:
-                        #         path = file.location + "\\" + os.path.splitext( file.name )[0] + ".png"
-                        #     else:
-                        #         if i == 3: i = 4
-                        #         path = file.location + "\\" + os.path.splitext( file.name )[0] + str( int( height/i ) ) + ".png"
-                        path = file.location + "\\" + file.name
-                        zipf.write( path, os.path.basename( path ), zipfile.ZIP_DEFLATED )
-                        for path in file.output:
-                            zipf.write( path, os.path.basename( path ), zipfile.ZIP_DEFLATED )
-            title.set( "Drag and drop files here:" )
-            if zipbox.get():
-                listbox.insert( END, os.path.splitext( os.path.basename( files[0] ) )[0] + '-batch.zip' )
-                listbox.dirs.append( file.location + "\\" + os.path.splitext( os.path.basename( files[0] ) )[0] + '-batch.zip' )
-                zipf.close()
-
-def open_dir( event ):
-    to_open = listbox.dirs[ listbox.curselection()[0] ]
-    if os.path.isfile( to_open ):
-        subprocess.Popen( "explorer /select,\"" + to_open + "\"")
-    else:
-        messagebox.showerror( "Error", "Cannot open directory, file doesn't exist!" )
-
-listbox.bind( "<Double-Button-1>", open_dir )
-listbox.drop_target_register( DND_FILES )
-listbox.dnd_bind('<<DropEnter>>', drop_enter)
-listbox.dnd_bind('<<Drop>>', drop)
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-root.update_idletasks()
-root.deiconify()
-icon = PhotoImage( file=resource_path( 'resize.png' ) )
-root.iconphoto( True, icon )
-root.mainloop()
+if __name__ == '__main__':
+    app = QtWidgets.QApplication( sys.argv )
+    window = MainWindow()
+    window.setFixedSize( 250, 400 )
+    window.setWindowTitle( "Resizer 2.0" )
+    window.show()
+    sys.exit( app.exec_() )

@@ -20,10 +20,11 @@ Check [latest release](https://github.com/whuppo/emote-resize/releases).
 *required versions may be inaccurate*
 * Python 3.5.x
 * Pillow 7.x
+* PySide2 5.15.x
 
 ## Building
 `pip install pyinstaller`
 
-`pyinstaller resize.spec`
+`pyinstaller resize.py`
 
 Doing this in a fresh venv might have the module finder not include more than required.
